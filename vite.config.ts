@@ -155,8 +155,8 @@ const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(
 // Base path:
 // - GitHub Pages needs "/xhc-memories/" (repo name as subpath)
 // - Cloudflare Pages uses root "/"
-// Set GITHUB_PAGES=true env var only in GitHub Actions workflow
-const base = process.env.GITHUB_PAGES === "true" ? "/xhc-memories/" : "/";
+// Set DEPLOY_TARGET=github in GitHub Actions workflow only
+const base = process.env.DEPLOY_TARGET === "github" ? "/xhc-memories/" : "/";
 
 export default defineConfig({
   plugins,

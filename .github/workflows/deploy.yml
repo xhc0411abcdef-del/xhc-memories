@@ -39,7 +39,7 @@ jobs:
         run: pnpm run build
         working-directory: .
         env:
-          GITHUB_PAGES: "true"
+          DEPLOY_TARGET: "github"
           VITE_ANALYTICS_ENDPOINT: ""
           VITE_ANALYTICS_WEBSITE_ID: ""
           VITE_APP_ID: "memory-album"
