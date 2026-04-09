@@ -152,7 +152,10 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
-// GitHub Pages base path (set via env var during CI build)
+// Base path:
+// - GitHub Pages needs "/xhc-memories/" (repo name as subpath)
+// - Cloudflare Pages uses root "/"
+// Set GITHUB_PAGES=true env var only in GitHub Actions workflow
 const base = process.env.GITHUB_PAGES === "true" ? "/xhc-memories/" : "/";
 
 export default defineConfig({
