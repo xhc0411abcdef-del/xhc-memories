@@ -152,8 +152,12 @@ function vitePluginManusDebugCollector(): Plugin {
 
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
+// GitHub Pages base path (set via env var during CI build)
+const base = process.env.GITHUB_PAGES === "true" ? "/xhc-memories/" : "/";
+
 export default defineConfig({
   plugins,
+  base,
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
