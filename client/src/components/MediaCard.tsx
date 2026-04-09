@@ -4,6 +4,7 @@
  * - Soft rounded card with warm shadow
  * - Color-coded type badge (rose=photo, blue=video, mint=audio)
  * - Hover: float up + shadow deepen
+ * - Click: always fires onClick (pointer-events fixed)
  */
 
 import { useState } from "react";
@@ -64,9 +65,14 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
       return (
         <img
           src={item.url}
-          alt={item.title || ""}
+          alt={item.title || "照片"}
+          draggable={false}
           className="w-full h-full object-cover transition-transform duration-500"
-          style={{ transform: hovered ? "scale(1.06)" : "scale(1)" }}
+          style={{
+            transform: hovered ? "scale(1.06)" : "scale(1)",
+            pointerEvents: "none", // prevent img from swallowing clicks
+            userSelect: "none",
+          }}
           onError={() => setImgError(true)}
         />
       );
@@ -74,13 +80,14 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
 
     if (item.type === "video") {
       return (
-        <div className="w-full h-full relative overflow-hidden">
+        <div className="w-full h-full relative overflow-hidden" style={{ pointerEvents: "none" }}>
           {item.cover && !imgError ? (
             <img
               src={item.cover}
-              alt={item.title || ""}
+              alt={item.title || "视频"}
+              draggable={false}
               className="w-full h-full object-cover transition-transform duration-500"
-              style={{ transform: hovered ? "scale(1.06)" : "scale(1)" }}
+              style={{ transform: hovered ? "scale(1.06)" : "scale(1)", pointerEvents: "none" }}
               onError={() => setImgError(true)}
             />
           ) : (
@@ -94,13 +101,13 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
           {/* Play overlay */}
           <div
             className="absolute inset-0 flex items-center justify-center transition-opacity duration-200"
-            style={{ background: "rgba(0,0,0,0.2)", opacity: hovered ? 1 : 0.6 }}
+            style={{ background: "rgba(0,0,0,0.22)", opacity: hovered ? 1 : 0.65 }}
           >
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.9)" }}
+              className="w-14 h-14 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.92)" }}
             >
-              <Play className="w-5 h-5 ml-0.5" style={{ color: "oklch(0.45 0.12 220)" }} fill="currentColor" />
+              <Play className="w-6 h-6 ml-1" style={{ color: "oklch(0.45 0.12 220)" }} fill="currentColor" />
             </div>
           </div>
         </div>
@@ -111,7 +118,10 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
       return (
         <div
           className="w-full h-full flex flex-col items-center justify-center gap-3"
-          style={{ background: `linear-gradient(135deg, oklch(0.96 0.03 160), oklch(0.93 0.05 160))` }}
+          style={{
+            background: `linear-gradient(135deg, oklch(0.96 0.03 160), oklch(0.92 0.06 160))`,
+            pointerEvents: "none",
+          }}
         >
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -139,7 +149,10 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
 
   return (
     <div
-      className="fade-in-up rounded-2xl overflow-hidden cursor-pointer group"
+      role="button"
+      tabIndex={0}
+      aria-label={`打开${config.label}：${item.title || ""}`}
+      className="fade-in-up rounded-2xl overflow-hidden cursor-pointer select-none"
       style={{
         animationDelay: `${index * 60}ms`,
         transform: hovered ? "translateY(-6px)" : "translateY(0)",
@@ -153,6 +166,7 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
     >
       {/* Thumbnail */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
@@ -165,6 +179,7 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
             fontFamily: "'Nunito', sans-serif",
             background: config.badgeBg,
             color: config.badgeColor,
+            pointerEvents: "none",
           }}
         >
           <Icon className="w-3 h-3" />
