@@ -1,13 +1,13 @@
 /**
  * MediaLightbox: Full-screen media viewer overlay.
  * Design: Watercolor Daylight Aesthetic
- * - Dark backdrop with blur
+ * - Dark backdrop (no blur on backdrop to avoid darkening images)
  * - Centered content with navigation arrows
- * - Supports photo, video (with crossOrigin fix), audio
+ * - Supports photo, video, audio with loading states
  */
 
-import { useEffect, useCallback, useRef } from "react";
-import { X, ChevronLeft, ChevronRight, Music, Calendar } from "lucide-react";
+import { useEffect, useCallback, useRef, useState } from "react";
+import { X, ChevronLeft, ChevronRight, Music, Calendar, Loader2, AlertCircle } from "lucide-react";
 import { MediaItem } from "@/lib/mediaData";
 
 interface MediaLightboxProps {
@@ -27,6 +27,8 @@ export default function MediaLightbox({
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const handlePrev = useCallback(() => {
     if (hasPrev) onNavigate(items[currentIndex - 1]);
@@ -35,6 +37,12 @@ export default function MediaLightbox({
   const handleNext = useCallback(() => {
     if (hasNext) onNavigate(items[currentIndex + 1]);
   }, [hasNext, currentIndex, items, onNavigate]);
+
+  // Reset image state when item changes
+  useEffect(() => {
+    setImgLoaded(false);
+    setImgError(false);
+  }, [item.id]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -50,7 +58,7 @@ export default function MediaLightbox({
     };
   }, [onClose, handlePrev, handleNext]);
 
-  // When item changes, reload video
+  // Reload video when item changes
   useEffect(() => {
     if (item.type === "video" && videoRef.current) {
       videoRef.current.load();
@@ -71,7 +79,7 @@ export default function MediaLightbox({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(10, 5, 5, 0.92)", backdropFilter: "blur(16px)" }}
+      style={{ background: "rgba(8, 4, 4, 0.95)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -80,13 +88,7 @@ export default function MediaLightbox({
       <button
         onClick={onClose}
         className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-        style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
-        onMouseEnter={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)")
-        }
-        onMouseLeave={(e) =>
-          ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.15)")
-        }
+        style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
       >
         <X className="w-5 h-5" />
       </button>
@@ -96,13 +98,7 @@ export default function MediaLightbox({
         <button
           onClick={(e) => { e.stopPropagation(); handlePrev(); }}
           className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200"
-          style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.15)")
-          }
+          style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -113,39 +109,55 @@ export default function MediaLightbox({
         <button
           onClick={(e) => { e.stopPropagation(); handleNext(); }}
           className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200"
-          style={{ background: "rgba(255,255,255,0.15)", color: "white" }}
-          onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.28)")
-          }
-          onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.15)")
-          }
+          style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
         >
           <ChevronRight className="w-6 h-6" />
         </button>
       )}
 
-      {/* Content area — stops click from bubbling to backdrop */}
+      {/* Content area */}
       <div
         className="flex flex-col items-center w-full px-16 gap-4"
         style={{ maxWidth: "900px", maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Media */}
-        <div className="w-full flex items-center justify-center">
+        <div className="w-full flex items-center justify-center relative">
           {item.type === "photo" && (
-            <img
-              key={item.id}
-              src={item.url}
-              alt={item.title || "照片"}
-              className="rounded-2xl object-contain"
-              style={{
-                maxHeight: "72vh",
-                maxWidth: "100%",
-                boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-                display: "block",
-              }}
-            />
+            <>
+              {/* Loading spinner */}
+              {!imgLoaded && !imgError && (
+                <div className="flex flex-col items-center gap-3" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <Loader2 className="w-10 h-10 animate-spin" />
+                  <span className="text-sm" style={{ fontFamily: "'Nunito', sans-serif" }}>加载中...</span>
+                </div>
+              )}
+              {/* Error state */}
+              {imgError && (
+                <div className="flex flex-col items-center gap-3" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  <AlertCircle className="w-10 h-10" />
+                  <span className="text-sm" style={{ fontFamily: "'Nunito', sans-serif" }}>图片加载失败</span>
+                </div>
+              )}
+              <img
+                key={item.id}
+                src={item.url}
+                alt={item.title || "照片"}
+                crossOrigin="anonymous"
+                className="rounded-2xl object-contain"
+                style={{
+                  maxHeight: "72vh",
+                  maxWidth: "100%",
+                  boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
+                  display: imgLoaded ? "block" : "none",
+                }}
+                onLoad={() => setImgLoaded(true)}
+                onError={() => {
+                  setImgError(true);
+                  setImgLoaded(false);
+                }}
+              />
+            </>
           )}
 
           {item.type === "video" && (
@@ -160,7 +172,7 @@ export default function MediaLightbox({
                 maxHeight: "72vh",
                 maxWidth: "100%",
                 width: "100%",
-                boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+                boxShadow: "0 24px 64px rgba(0,0,0,0.7)",
                 background: "#000",
               }}
             >
@@ -206,7 +218,6 @@ export default function MediaLightbox({
                 controls
                 autoPlay
                 className="w-full"
-                style={{ accentColor: "oklch(0.72 0.14 160)" }}
               />
             </div>
           )}
