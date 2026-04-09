@@ -12,6 +12,7 @@ import { useState, useMemo } from "react";
 import { Heart, LogOut, Image, Video, Music, Layers } from "lucide-react";
 import { mediaItems, MediaItem, MediaType } from "@/lib/mediaData";
 import MediaCard from "@/components/MediaCard";
+import MediaPlayerModal from "@/components/MediaPlayerModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BG_URL =
@@ -40,6 +41,15 @@ interface AlbumPageProps {
 export default function AlbumPage({ onLogout }: AlbumPageProps) {
   const { logout } = useAuth();
   const [filter, setFilter] = useState<FilterType>("all");
+  const [playerItem, setPlayerItem] = useState<MediaItem | null>(null);
+
+  const handleCardClick = (item: MediaItem) => {
+    if (item.type === "photo") {
+      window.open(item.url, "_blank");
+    } else {
+      setPlayerItem(item);
+    }
+  };
 
   const filteredItems = useMemo(() => {
     if (filter === "all") return mediaItems;
@@ -239,7 +249,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
                 key={item.id}
                 item={item}
                 index={i}
-                onClick={() => window.open(item.url, "_blank")}
+                onClick={() => handleCardClick(item)}
               />
             ))}
           </div>
@@ -266,6 +276,13 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
       </footer>
 
 
+      {/* Media Player Modal for video/audio */}
+      {playerItem && (
+        <MediaPlayerModal
+          item={playerItem}
+          onClose={() => setPlayerItem(null)}
+        />
+      )}
     </div>
   );
 }
