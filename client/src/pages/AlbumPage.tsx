@@ -15,7 +15,7 @@ import { mediaItems, MediaItem, MediaType } from "@/lib/mediaData";
 import MediaCard from "@/components/MediaCard";
 import { useAuth } from "@/contexts/AuthContext";
 
-const CHAT_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663522413194/gVumamf6x9RGfwVLjuptu2/chat_viewer_ed6614c9.html";
+const CHAT_URL = "/chat.html";
 
 const BG_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663522413194/gVumamf6x9RGfwVLjuptu2/watercolor-hero-bg-KwJA9naogSVcHCrmA7uaPe.webp";
