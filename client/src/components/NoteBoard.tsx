@@ -8,7 +8,7 @@ import { useRef, useEffect, useState, useCallback, KeyboardEvent } from "react";
 import { Feather, Trash2, Send, RefreshCw } from "lucide-react";
 
 // ── GitHub config ────────────────────────────────────────────────────────────
-const GH_TOKEN = "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";
+const GH_TOKEN = import.meta.env.VITE_GH_TOKEN as string;
 const GH_REPO  = "xhc0411abcdef-del/xhc-memories";
 const GH_FILE  = "notes.json";
 const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
