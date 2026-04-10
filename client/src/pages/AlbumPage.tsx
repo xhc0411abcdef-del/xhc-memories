@@ -9,10 +9,13 @@
  */
 
 import { useState, useMemo } from "react";
-import { Heart, LogOut, Image, Video, Music, Layers } from "lucide-react";
+import { Heart, LogOut, Image, Video, Music, Layers, MessageSquareText } from "lucide-react";
+
 import { mediaItems, MediaItem, MediaType } from "@/lib/mediaData";
 import MediaCard from "@/components/MediaCard";
 import { useAuth } from "@/contexts/AuthContext";
+
+const CHAT_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663522413194/gVumamf6x9RGfwVLjuptu2/chat_viewer_ed6614c9.html";
 
 const BG_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663522413194/gVumamf6x9RGfwVLjuptu2/watercolor-hero-bg-KwJA9naogSVcHCrmA7uaPe.webp";
@@ -129,28 +132,51 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
               </p>
             </div>
 
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 mt-1"
-              style={{
-                fontFamily: "'Nunito', sans-serif",
-                background: "rgba(255,255,255,0.7)",
-                color: "oklch(0.50 0.04 20)",
-                border: "1px solid rgba(255,255,255,0.9)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "rgba(255,255,255,0.9)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "rgba(255,255,255,0.7)";
-              }}
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              退出
-            </button>
+            {/* Top-right actions */}
+            <div className="flex flex-col gap-2 items-end mt-1">
+              {/* Chat link */}
+              <button
+                onClick={() => window.open(CHAT_URL, "_blank")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
+                style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  background: "rgba(219,234,254,0.85)",
+                  color: "oklch(0.40 0.12 220)",
+                  border: "1px solid rgba(193,219,254,0.9)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(219,234,254,1)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(219,234,254,0.85)";
+                }}
+              >
+                <MessageSquareText className="w-3.5 h-3.5" />
+                聊天记录
+              </button>
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
+                style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  background: "rgba(255,255,255,0.7)",
+                  color: "oklch(0.50 0.04 20)",
+                  border: "1px solid rgba(255,255,255,0.9)",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,255,255,0.9)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(255,255,255,0.7)";
+                }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                退出
+              </button>
+            </div>
           </div>
         </div>
       </header>
