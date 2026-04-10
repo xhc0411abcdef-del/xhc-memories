@@ -21,6 +21,7 @@ const BG_URL =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663522413194/gVumamf6x9RGfwVLjuptu2/watercolor-hero-bg-KwJA9naogSVcHCrmA7uaPe.webp";
 
 type FilterType = "all" | MediaType;
+type ViewType = FilterType | "chat";
 
 const FILTERS: { key: FilterType; label: string; icon: typeof Layers }[] = [
   { key: "all", label: "全部", icon: Layers },
@@ -29,11 +30,12 @@ const FILTERS: { key: FilterType; label: string; icon: typeof Layers }[] = [
   { key: "audio", label: "音频", icon: Music },
 ];
 
-const FILTER_COLORS: Record<FilterType, { active: string; text: string }> = {
+const FILTER_COLORS: Record<ViewType, { active: string; text: string }> = {
   all: { active: "oklch(0.65 0.12 10)", text: "white" },
   photo: { active: "oklch(0.65 0.12 10)", text: "white" },
   video: { active: "oklch(0.52 0.14 220)", text: "white" },
   audio: { active: "oklch(0.48 0.14 160)", text: "white" },
+  chat: { active: "oklch(0.48 0.14 280)", text: "white" },
 };
 
 interface AlbumPageProps {
@@ -42,7 +44,9 @@ interface AlbumPageProps {
 
 export default function AlbumPage({ onLogout }: AlbumPageProps) {
   const { logout } = useAuth();
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [view, setView] = useState<ViewType>("all");
+  const filter: FilterType = view === "chat" ? "all" : view;
+
   const handleCardClick = (item: MediaItem) => {
     if (item.type === "photo") {
       window.open(item.url, "_blank");
@@ -193,23 +197,19 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
         <div className="container">
           <div className="flex gap-1 py-3 overflow-x-auto">
             {FILTERS.map((f) => {
-              const isActive = filter === f.key;
+              const isActive = view === f.key;
               const Icon = f.icon;
               const count = counts[f.key];
               return (
                 <button
                   key={f.key}
-                  onClick={() => setFilter(f.key)}
+                  onClick={() => setView(f.key)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200"
                   style={{
                     fontFamily: "'Nunito', sans-serif",
                     background: isActive ? FILTER_COLORS[f.key].active : "transparent",
-                    color: isActive
-                      ? FILTER_COLORS[f.key].text
-                      : "oklch(0.50 0.03 30)",
-                    boxShadow: isActive
-                      ? `0 2px 8px ${FILTER_COLORS[f.key].active}55`
-                      : "none",
+                    color: isActive ? FILTER_COLORS[f.key].text : "oklch(0.50 0.03 30)",
+                    boxShadow: isActive ? `0 2px 8px ${FILTER_COLORS[f.key].active}55` : "none",
                   }}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -226,11 +226,38 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
                 </button>
               );
             })}
+            {/* Chat tab */}
+            <button
+              onClick={() => setView("chat")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200"
+              style={{
+                fontFamily: "'Nunito', sans-serif",
+                background: view === "chat" ? FILTER_COLORS.chat.active : "transparent",
+                color: view === "chat" ? "white" : "oklch(0.50 0.03 30)",
+                boxShadow: view === "chat" ? `0 2px 8px ${FILTER_COLORS.chat.active}55` : "none",
+              }}
+            >
+              <MessageSquareText className="w-3.5 h-3.5" />
+              聊天记录
+            </button>
           </div>
         </div>
       </div>
 
+      {/* Chat iframe view */}
+      {view === "chat" && (
+        <div style={{ height: "calc(100vh - 140px)", width: "100%" }}>
+          <iframe
+            src={CHAT_URL}
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+            title="聊天记录"
+            sandbox="allow-scripts allow-same-origin allow-popups"
+          />
+        </div>
+      )}
+
       {/* Grid */}
+      {view !== "chat" && (
       <main className="container py-8">
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -277,6 +304,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
           </div>
         )}
       </main>
+      )}
 
       {/* Footer */}
       <footer className="container pb-8 pt-4 text-center">
