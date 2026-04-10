@@ -12,7 +12,7 @@ import { useState, useMemo } from "react";
 import { Heart, LogOut, Image, Video, Music, Layers } from "lucide-react";
 import { mediaItems, MediaItem, MediaType } from "@/lib/mediaData";
 import MediaCard from "@/components/MediaCard";
-import MediaPlayerModal from "@/components/MediaPlayerModal";
+import MediaLightbox from "@/components/MediaLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BG_URL =
@@ -41,13 +41,13 @@ interface AlbumPageProps {
 export default function AlbumPage({ onLogout }: AlbumPageProps) {
   const { logout } = useAuth();
   const [filter, setFilter] = useState<FilterType>("all");
-  const [playerItem, setPlayerItem] = useState<MediaItem | null>(null);
+  const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
 
   const handleCardClick = (item: MediaItem) => {
     if (item.type === "photo") {
       window.open(item.url, "_blank");
     } else {
-      setPlayerItem(item);
+      setLightboxItem(item);
     }
   };
 
@@ -276,11 +276,13 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
       </footer>
 
 
-      {/* Media Player Modal for video/audio */}
-      {playerItem && (
-        <MediaPlayerModal
-          item={playerItem}
-          onClose={() => setPlayerItem(null)}
+      {/* Lightbox for video/audio */}
+      {lightboxItem && (
+        <MediaLightbox
+          item={lightboxItem}
+          items={filteredItems.filter((i) => i.type !== "photo")}
+          onClose={() => setLightboxItem(null)}
+          onNavigate={setLightboxItem}
         />
       )}
     </div>
