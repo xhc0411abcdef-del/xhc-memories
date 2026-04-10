@@ -114,12 +114,6 @@ export default function LockPage({ onUnlock }: LockPageProps) {
             >
               此情可待成追忆，只是当时已惘然。
             </p>
-            <p
-              className="mt-1 text-xs"
-              style={{ color: "oklch(0.60 0.04 20)", fontFamily: "'Nunito', sans-serif" }}
-            >
-              — 李商隐《锦瑟》
-            </p>
           </div>
 
           {/* Form */}
