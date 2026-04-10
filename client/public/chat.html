@@ -470,17 +470,13 @@ body {
         const scrollContainer = document.getElementById('scrollContainer');
         if (scrollContainer) scrollContainer.innerHTML = loadingHTML;
 
-        // Fetch all 6 split chunks in parallel
-        const BASE = 'https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat';
-        const parts = await Promise.all([
-          fetch(`${BASE}/data1_part1.json`).then(r => r.json()),
-          fetch(`${BASE}/data1_part2.json`).then(r => r.json()),
-          fetch(`${BASE}/data1_part3.json`).then(r => r.json()),
-          fetch(`${BASE}/data2_part1.json`).then(r => r.json()),
-          fetch(`${BASE}/data2_part2.json`).then(r => r.json()),
-          fetch(`${BASE}/data2_part3.json`).then(r => r.json()),
+        // Fetch both JSON chunks in parallel
+        const [r1, r2] = await Promise.all([
+          fetch('https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/data1.json'),
+          fetch('https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/data2.json')
         ]);
-        const allData = parts.flat();
+        const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+        const allData = d1.concat(d2);
         let currentList = allData;
 
         // Clear loading spinner (ChunkedRenderer will take over)
