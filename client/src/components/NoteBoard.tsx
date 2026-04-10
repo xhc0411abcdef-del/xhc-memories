@@ -51,13 +51,19 @@ async function fetchNotes(): Promise<{ notes: Note[]; sha: string }> {
   });
   if (!res.ok) throw new Error(`GitHub fetch failed: ${res.status}`);
   const data = await res.json();
-  const content = atob(data.content.replace(/\n/g, ""));
+  // Decode base64 → UTF-8 bytes → string (supports Chinese / multi-byte chars)
+  const raw = atob(data.content.replace(/\n/g, ""));
+  const bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  const content = new TextDecoder("utf-8").decode(bytes);
   const notes: Note[] = JSON.parse(content);
   return { notes, sha: data.sha };
 }
 
 async function saveNotes(notes: Note[], sha: string): Promise<string> {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(notes, null, 2))));
+  // Encode string → UTF-8 bytes → base64 (supports Chinese / multi-byte chars)
+  const jsonStr = JSON.stringify(notes, null, 2);
+  const encoded = new TextEncoder().encode(jsonStr);
+  const content = btoa(Array.from(encoded, (b) => String.fromCharCode(b)).join(""));
   const res = await fetch(GH_API, {
     method: "PUT",
     headers: {
