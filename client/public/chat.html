@@ -470,13 +470,19 @@ body {
         const scrollContainer = document.getElementById('scrollContainer');
         if (scrollContainer) scrollContainer.innerHTML = loadingHTML;
 
-        // Fetch both JSON chunks in parallel
-        const [r1, r2] = await Promise.all([
-          fetch('https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/data1.json'),
-          fetch('https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/data2.json')
-        ]);
-        const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
-        const allData = d1.concat(d2);
+        // Fetch all chunks in parallel (split into 4MB parts to stay under raw.githubusercontent.com limit)
+        const BASE = 'https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/';
+        const parts = [
+          'data1_p01.json','data1_p02.json','data1_p03.json','data1_p04.json',
+          'data1_p05.json','data1_p06.json','data1_p07.json','data1_p08.json',
+          'data1_p09.json','data1_p10.json','data1_p11.json','data1_p12.json',
+          'data2_p01.json','data2_p02.json','data2_p03.json','data2_p04.json',
+          'data2_p05.json','data2_p06.json','data2_p07.json','data2_p08.json',
+          'data2_p09.json','data2_p10.json','data2_p11.json','data2_p12.json',
+        ];
+        const responses = await Promise.all(parts.map(p => fetch(BASE + p)));
+        const chunks = await Promise.all(responses.map(r => r.json()));
+        const allData = chunks.flat();
         let currentList = allData;
 
         // Clear loading spinner (ChunkedRenderer will take over)
