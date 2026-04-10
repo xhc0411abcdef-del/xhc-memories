@@ -1,78 +1,66 @@
 /**
- * NoteBoard: 「笺」留言板
- * Design: Watercolor Daylight Aesthetic
- * - Handwritten-style note cards
- * - localStorage persistence
- * - Two senders: "你" and "我"
+ * NoteBoard — 笺
+ * Shared message board backed by the database.
+ * Both users see the same notes in real-time (polling every 5s).
  */
 
-import { useState, useEffect, useRef } from "react";
-import { Send, Trash2 } from "lucide-react";
+import { useRef, useEffect, useState, KeyboardEvent } from "react";
+import { Feather, Trash2, Send } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
-interface Note {
-  id: string;
-  sender: "me" | "you";
-  text: string;
-  time: number;
-}
+type Sender = "me" | "you";
 
-const STORAGE_KEY = "memory-album-notes";
+const SENDER_LABELS: Record<Sender, string> = {
+  me: "我",
+  you: "你",
+};
 
-function loadNotes(): Note[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveNotes(notes: Note[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-}
-
-function formatTime(ts: number) {
-  const d = new Date(ts);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const SENDER_COLORS: Record<Sender, { bubble: string; text: string; label: string }> = {
+  me: {
+    bubble: "oklch(0.92 0.06 10)",
+    text: "oklch(0.28 0.04 15)",
+    label: "oklch(0.65 0.12 10)",
+  },
+  you: {
+    bubble: "oklch(0.93 0.04 220)",
+    text: "oklch(0.25 0.05 220)",
+    label: "oklch(0.52 0.14 220)",
+  },
+};
 
 export default function NoteBoard() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [text, setText] = useState("");
-  const [sender, setSender] = useState<"me" | "you">("me");
+  const [sender, setSender] = useState<Sender>("me");
+  const [input, setInput] = useState("");
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setNotes(loadNotes());
-  }, []);
+  const { data: notes = [], refetch } = trpc.notes.list.useQuery(undefined, {
+    refetchInterval: 5000, // poll every 5 seconds
+  });
 
+  const addMutation = trpc.notes.add.useMutation({
+    onSuccess: () => {
+      setInput("");
+      refetch();
+    },
+  });
+
+  const deleteMutation = trpc.notes.delete.useMutation({
+    onSuccess: () => refetch(),
+  });
+
+  // Scroll to bottom when new notes arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [notes]);
+  }, [notes.length]);
 
   const handleSend = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const newNote: Note = {
-      id: Date.now().toString(),
-      sender,
-      text: trimmed,
-      time: Date.now(),
-    };
-    const updated = [...notes, newNote];
-    setNotes(updated);
-    saveNotes(updated);
-    setText("");
+    const text = input.trim();
+    if (!text || addMutation.isPending) return;
+    addMutation.mutate({ sender, text });
   };
 
-  const handleDelete = (id: string) => {
-    const updated = notes.filter((n) => n.id !== id);
-    setNotes(updated);
-    saveNotes(updated);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -82,178 +70,184 @@ export default function NoteBoard() {
   return (
     <div
       className="flex flex-col"
-      style={{ height: "calc(100vh - 140px)", maxWidth: "680px", margin: "0 auto", padding: "24px 16px 0" }}
+      style={{
+        height: "calc(100vh - 140px)",
+        background: "oklch(0.99 0.003 30)",
+      }}
     >
-      {/* Notes list */}
+      {/* Messages area */}
       <div
-        className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: "16px" }}
+        className="flex-1 overflow-y-auto px-4 py-6"
+        style={{ scrollBehavior: "smooth" }}
       >
-        {notes.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center h-full gap-3"
-            style={{ color: "oklch(0.68 0.03 30)" }}
-          >
-            <p
-              className="text-2xl font-light italic"
-              style={{ fontFamily: "'Cormorant Garamond', serif", color: "oklch(0.55 0.04 20)" }}
-            >
-              尺素如残雪，结为双鲤鱼。
-            </p>
-            <p className="text-xs" style={{ fontFamily: "'Nunito', sans-serif", color: "oklch(0.68 0.03 30)" }}>
-              写下第一封笺吧
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {notes.map((note) => (
+        <div className="max-w-2xl mx-auto flex flex-col gap-4">
+          {notes.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 gap-3 opacity-60">
+              <Feather
+                className="w-10 h-10"
+                style={{ color: "oklch(0.72 0.06 40)" }}
+              />
+              <p
+                className="text-sm italic text-center"
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: "16px",
+                  color: "oklch(0.55 0.03 30)",
+                }}
+              >
+                尺素如残雪，结为双鲤鱼。
+              </p>
+            </div>
+          )}
+
+          {notes.map((note) => {
+            const isMe = note.sender === "me";
+            const colors = SENDER_COLORS[note.sender as Sender];
+            return (
               <div
                 key={note.id}
-                className={`group flex ${note.sender === "me" ? "justify-end" : "justify-start"}`}
+                className={`flex gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                onMouseEnter={() => setHoveredId(note.id)}
+                onMouseLeave={() => setHoveredId(null)}
               >
+                {/* Avatar */}
                 <div
-                  className="relative max-w-[75%] px-5 py-4 rounded-2xl"
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold mt-1"
                   style={{
-                    background:
-                      note.sender === "me"
-                        ? "oklch(0.96 0.03 10)"
-                        : "oklch(0.98 0.01 40)",
-                    border:
-                      note.sender === "me"
-                        ? "1px solid oklch(0.88 0.06 10)"
-                        : "1px solid oklch(0.91 0.01 40)",
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                    background: colors.bubble,
+                    color: colors.label,
+                    border: `1.5px solid ${colors.label}33`,
                   }}
                 >
-                  {/* Sender label */}
-                  <p
-                    className="text-xs mb-1.5 font-medium"
+                  {SENDER_LABELS[note.sender as Sender]}
+                </div>
+
+                {/* Bubble */}
+                <div className={`flex flex-col gap-1 max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
+                  <div
+                    className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap relative"
                     style={{
+                      background: colors.bubble,
+                      color: colors.text,
+                      borderRadius: isMe
+                        ? "18px 4px 18px 18px"
+                        : "4px 18px 18px 18px",
                       fontFamily: "'Nunito', sans-serif",
-                      color: note.sender === "me" ? "oklch(0.62 0.10 10)" : "oklch(0.55 0.04 200)",
-                    }}
-                  >
-                    {note.sender === "me" ? "我" : "你"}
-                  </p>
-                  {/* Text */}
-                  <p
-                    className="leading-relaxed whitespace-pre-wrap"
-                    style={{
-                      fontFamily: "'Noto Serif SC', 'Songti SC', serif",
-                      fontSize: "15px",
-                      color: "oklch(0.28 0.03 20)",
-                      lineHeight: "1.8",
                     }}
                   >
                     {note.text}
-                  </p>
-                  {/* Time */}
-                  <p
-                    className="text-xs mt-2"
-                    style={{
-                      fontFamily: "'Nunito', sans-serif",
-                      color: "oklch(0.68 0.02 30)",
-                    }}
+                    {/* Delete button */}
+                    {hoveredId === note.id && (
+                      <button
+                        onClick={() => deleteMutation.mutate({ id: note.id })}
+                        className="absolute -top-2 transition-opacity"
+                        style={{
+                          right: isMe ? "auto" : "-8px",
+                          left: isMe ? "-8px" : "auto",
+                          background: "oklch(0.95 0.02 10)",
+                          border: "1px solid oklch(0.88 0.04 10)",
+                          borderRadius: "50%",
+                          width: "20px",
+                          height: "20px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Trash2
+                          className="w-2.5 h-2.5"
+                          style={{ color: "oklch(0.55 0.10 10)" }}
+                        />
+                      </button>
+                    )}
+                  </div>
+                  <span
+                    className="text-xs opacity-50"
+                    style={{ fontFamily: "'Nunito', sans-serif" }}
                   >
-                    {formatTime(note.time)}
-                  </p>
-                  {/* Delete button */}
-                  <button
-                    onClick={() => handleDelete(note.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg"
-                    style={{ color: "oklch(0.70 0.04 20)" }}
-                    title="删除"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                    {new Date(note.createdAt).toLocaleString("zh-CN", {
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
               </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
-        )}
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input area */}
       <div
-        className="flex-shrink-0 py-4"
+        className="border-t px-4 py-4"
         style={{
-          borderTop: "1px solid oklch(0.92 0.01 40)",
+          background: "rgba(253, 250, 247, 0.95)",
+          backdropFilter: "blur(12px)",
+          borderColor: "oklch(0.92 0.01 40)",
         }}
       >
-        {/* Sender toggle */}
-        <div className="flex gap-2 mb-3">
-          {(["me", "you"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSender(s)}
-              className="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200"
+        <div className="max-w-2xl mx-auto flex flex-col gap-3">
+          {/* Sender selector */}
+          <div className="flex gap-2">
+            {(["me", "you"] as Sender[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSender(s)}
+                className="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200"
+                style={{
+                  fontFamily: "'Nunito', sans-serif",
+                  background:
+                    sender === s
+                      ? SENDER_COLORS[s].label
+                      : "oklch(0.93 0.01 40)",
+                  color: sender === s ? "white" : "oklch(0.55 0.02 30)",
+                }}
+              >
+                以{SENDER_LABELS[s]}的名义
+              </button>
+            ))}
+          </div>
+
+          {/* Text input + send */}
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="写下想说的话… Enter 发送，Shift+Enter 换行"
+              rows={2}
+              className="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm outline-none"
               style={{
                 fontFamily: "'Nunito', sans-serif",
+                background: "white",
+                border: "1.5px solid oklch(0.88 0.02 40)",
+                color: "oklch(0.25 0.02 30)",
+                lineHeight: "1.6",
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || addMutation.isPending}
+              className="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 flex-shrink-0"
+              style={{
                 background:
-                  sender === s
-                    ? s === "me"
-                      ? "oklch(0.65 0.12 10)"
-                      : "oklch(0.52 0.10 200)"
-                    : "oklch(0.95 0.01 30)",
-                color: sender === s ? "white" : "oklch(0.50 0.03 30)",
-                border: "none",
+                  input.trim() && !addMutation.isPending
+                    ? SENDER_COLORS[sender].label
+                    : "oklch(0.90 0.01 40)",
+                color:
+                  input.trim() && !addMutation.isPending
+                    ? "white"
+                    : "oklch(0.70 0.01 40)",
               }}
             >
-              {s === "me" ? "以我的名义" : "以你的名义"}
+              <Send className="w-4 h-4" />
             </button>
-          ))}
+          </div>
         </div>
-
-        {/* Text input */}
-        <div className="flex gap-2 items-end">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="写下心里话…"
-            rows={2}
-            className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
-            style={{
-              fontFamily: "'Noto Serif SC', 'Songti SC', serif",
-              background: "oklch(0.98 0.005 30)",
-              border: "1.5px solid oklch(0.91 0.01 40)",
-              color: "oklch(0.28 0.02 30)",
-              lineHeight: "1.7",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.border = "1.5px solid oklch(0.78 0.08 10)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.border = "1.5px solid oklch(0.91 0.01 40)";
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!text.trim()}
-            className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 disabled:opacity-40"
-            style={{
-              background: "oklch(0.65 0.12 10)",
-              color: "white",
-              boxShadow: "0 3px 12px oklch(0.65 0.12 10 / 0.35)",
-            }}
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled)
-                e.currentTarget.style.background = "oklch(0.60 0.14 10)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "oklch(0.65 0.12 10)";
-            }}
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-        <p
-          className="text-xs mt-2 text-center"
-          style={{ fontFamily: "'Nunito', sans-serif", color: "oklch(0.72 0.02 30)" }}
-        >
-          Enter 发送 · Shift+Enter 换行
-        </p>
       </div>
     </div>
   );

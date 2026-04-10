@@ -17,7 +17,6 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const [showAlbum, setShowAlbum] = useState(isAuthenticated);
   const [unlocking, setUnlocking] = useState(false);
-
   const handleUnlock = () => {
     setUnlocking(true);
     // Brief delay for exit animation
@@ -35,6 +34,7 @@ function AppContent() {
     return <AlbumPage onLogout={handleLogout} />;
   }
 
+  // make sure to consider if you need authentication for certain routes
   return (
     <div className={unlocking ? "slide-out" : ""}>
       <LockPage onUnlock={handleUnlock} />
