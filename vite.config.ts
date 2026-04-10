@@ -161,6 +161,12 @@ const base = process.env.DEPLOY_TARGET === "github" ? "/xhc-memories/" : "/";
 export default defineConfig({
   plugins,
   base,
+  define: {
+    // Explicitly inject env vars so Cloudflare Pages build cache is busted
+    // when the value changes (Vite's envDir auto-injection can be cached)
+    "import.meta.env.VITE_GH_TOKEN": JSON.stringify(process.env.VITE_GH_TOKEN ?? ""),
+    "__BUILD_TIME__": JSON.stringify(new Date().toISOString()),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
