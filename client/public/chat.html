@@ -470,8 +470,7 @@ body {
         const scrollContainer = document.getElementById('scrollContainer');
         if (scrollContainer) scrollContainer.innerHTML = loadingHTML;
 
-        // Fetch all chunks in parallel (split into 4MB parts to stay under raw.githubusercontent.com limit)
-        const BASE = 'https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/chat/';
+        // Fetch all chunks via /api/chat-data proxy (supports private GitHub repo)
         const parts = [
           'data1_p01.json','data1_p02.json','data1_p03.json','data1_p04.json',
           'data1_p05.json','data1_p06.json','data1_p07.json','data1_p08.json',
@@ -480,7 +479,7 @@ body {
           'data2_p05.json','data2_p06.json','data2_p07.json','data2_p08.json',
           'data2_p09.json','data2_p10.json','data2_p11.json','data2_p12.json',
         ];
-        const responses = await Promise.all(parts.map(p => fetch(BASE + p)));
+        const responses = await Promise.all(parts.map(p => fetch('/api/chat-data?file=' + p)));
         const chunks = await Promise.all(responses.map(r => r.json()));
         const allData = chunks.flat();
         let currentList = allData;
