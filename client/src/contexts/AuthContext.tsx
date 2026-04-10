@@ -9,8 +9,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 // =============================================
 // CHANGE YOUR PASSWORD HERE
 // =============================================
-const ALBUM_PASSWORD = "memories2024";
-const _BUILD_VERSION = "1.0.1"; // bump to force rebuild
+const ALBUM_PASSWORD = "Lightroastovo";
+const _BUILD_VERSION = "1.0.2"; // bump to force rebuild
 // =============================================
 
 interface AuthContextType {

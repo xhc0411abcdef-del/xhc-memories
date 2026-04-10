@@ -175,7 +175,7 @@ export default function LockPage({ onUnlock }: LockPageProps) {
                   "oklch(0.65 0.12 10)";
               }}
             >
-              {loading ? "验证中..." : "进入相册"}
+              {loading ? "验证中..." : "尺素如残雪，结为双鲤鱼"}
             </button>
           </form>
         </div>
