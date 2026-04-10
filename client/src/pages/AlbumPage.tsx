@@ -12,7 +12,6 @@ import { useState, useMemo } from "react";
 import { Heart, LogOut, Image, Video, Music, Layers } from "lucide-react";
 import { mediaItems, MediaItem, MediaType } from "@/lib/mediaData";
 import MediaCard from "@/components/MediaCard";
-import MediaLightbox from "@/components/MediaLightbox";
 import { useAuth } from "@/contexts/AuthContext";
 
 const BG_URL =
@@ -41,14 +40,11 @@ interface AlbumPageProps {
 export default function AlbumPage({ onLogout }: AlbumPageProps) {
   const { logout } = useAuth();
   const [filter, setFilter] = useState<FilterType>("all");
-  const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
-
   const handleCardClick = (item: MediaItem) => {
     if (item.type === "photo") {
       window.open(item.url, "_blank");
-    } else {
-      setLightboxItem(item);
     }
+    // video/audio handled inside MediaCard
   };
 
   const filteredItems = useMemo(() => {
@@ -276,15 +272,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
       </footer>
 
 
-      {/* Lightbox for video/audio */}
-      {lightboxItem && (
-        <MediaLightbox
-          item={lightboxItem}
-          items={filteredItems.filter((i) => i.type !== "photo")}
-          onClose={() => setLightboxItem(null)}
-          onNavigate={setLightboxItem}
-        />
-      )}
+
     </div>
   );
 }

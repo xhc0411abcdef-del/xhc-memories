@@ -1,20 +1,19 @@
 /**
  * MediaCard: Individual media item card for the album grid.
  * Design: Watercolor Daylight Aesthetic
- * - Soft rounded card with warm shadow
- * - Color-coded type badge (rose=photo, blue=video, mint=audio)
- * - Hover: float up + shadow deepen
- * - Click: always fires onClick (pointer-events fixed)
+ * - Photos: click opens in new tab
+ * - Videos: click expands card to show inline <video> player
+ * - Audios: click expands card to show inline <audio> player
  */
 
 import { useState } from "react";
-import { Image, Video, Music, Play, Calendar } from "lucide-react";
+import { Image, Video, Music, Play, Calendar, X } from "lucide-react";
 import { MediaItem } from "@/lib/mediaData";
 
 interface MediaCardProps {
   item: MediaItem;
   index: number;
-  onClick: () => void;
+  onClick: () => void; // only used for photos
 }
 
 const TYPE_CONFIG = {
@@ -41,6 +40,7 @@ const TYPE_CONFIG = {
 export default function MediaCard({ item, index, onClick }: MediaCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const config = TYPE_CONFIG[item.type];
   const Icon = config.icon;
 
@@ -50,6 +50,113 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
     return d.toLocaleDateString("zh-CN", { month: "short", day: "numeric", year: "numeric" });
   };
 
+  const handleCardClick = () => {
+    if (item.type === "photo") {
+      onClick();
+    } else {
+      setExpanded(true);
+    }
+  };
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded(false);
+  };
+
+  // ── Expanded video player ──────────────────────────────────────────────────
+  if (expanded && item.type === "video") {
+    return (
+      <div
+        className="fade-in-up rounded-2xl overflow-hidden"
+        style={{
+          animationDelay: `${index * 60}ms`,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.14)",
+          background: "#000",
+          border: "1px solid oklch(0.93 0.01 40)",
+          gridColumn: "span 2",
+        }}
+      >
+        {/* Close bar */}
+        <div
+          className="flex items-center justify-between px-3 py-2"
+          style={{ background: "oklch(0.15 0.01 220)" }}
+        >
+          <span
+            className="text-sm font-medium truncate"
+            style={{ color: "rgba(255,255,255,0.85)", fontFamily: "'Nunito', sans-serif" }}
+          >
+            {item.title || "视频"}
+          </span>
+          <button
+            onClick={handleClose}
+            className="ml-2 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.8)" }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {/* Video */}
+        <video
+          src={item.url}
+          controls
+          autoPlay
+          playsInline
+          style={{ width: "100%", display: "block", maxHeight: "360px", background: "#000" }}
+        />
+      </div>
+    );
+  }
+
+  // ── Expanded audio player ──────────────────────────────────────────────────
+  if (expanded && item.type === "audio") {
+    return (
+      <div
+        className="fade-in-up rounded-2xl overflow-hidden"
+        style={{
+          animationDelay: `${index * 60}ms`,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.10)",
+          background: "linear-gradient(135deg, oklch(0.97 0.02 160), oklch(0.94 0.05 160))",
+          border: "1px solid oklch(0.88 0.06 160)",
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
+              style={{ background: "oklch(0.88 0.08 160 / 0.6)" }}
+            >
+              <Music className="w-4 h-4" style={{ color: "oklch(0.42 0.12 160)" }} />
+            </div>
+            <span
+              className="text-sm font-medium truncate"
+              style={{ color: "oklch(0.30 0.05 160)", fontFamily: "'Nunito', sans-serif" }}
+            >
+              {item.title || "音频"}
+            </span>
+          </div>
+          <button
+            onClick={handleClose}
+            className="ml-2 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "oklch(0.88 0.08 160 / 0.4)", color: "oklch(0.42 0.12 160)" }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {/* Audio */}
+        <div className="px-4 pb-4">
+          <audio
+            src={item.url}
+            controls
+            autoPlay
+            style={{ width: "100%", display: "block" }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Default card (thumbnail view) ─────────────────────────────────────────
   const renderThumbnail = () => {
     if (item.type === "photo") {
       if (imgError) {
@@ -70,7 +177,7 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
           className="w-full h-full object-cover transition-transform duration-500"
           style={{
             transform: hovered ? "scale(1.06)" : "scale(1)",
-            pointerEvents: "none", // prevent img from swallowing clicks
+            pointerEvents: "none",
             userSelect: "none",
           }}
           onError={() => setImgError(true)}
@@ -165,8 +272,8 @@ export default function MediaCard({ item, index, onClick }: MediaCardProps) {
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      onClick={handleCardClick}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCardClick(); }}
     >
       {/* Thumbnail */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
