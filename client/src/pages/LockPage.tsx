@@ -105,14 +105,22 @@ export default function LockPage({ onUnlock }: LockPageProps) {
               letterSpacing: "0.02em",
             }}
           >
-            Our Memories
+            The Memories
           </h1>
-          <p
-            className="text-sm mb-8 font-light"
-            style={{ color: "oklch(0.55 0.03 20)", fontFamily: "'Nunito', sans-serif" }}
-          >
-            这里存放着我们共同的回忆
-          </p>
+          <div className="mb-8 mt-3 text-center">
+            <p
+              className="italic leading-relaxed"
+              style={{ color: "oklch(0.42 0.05 20)", fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", letterSpacing: "0.01em" }}
+            >
+              此情可待成追忆，只是当时已惘然。
+            </p>
+            <p
+              className="mt-1 text-xs"
+              style={{ color: "oklch(0.60 0.04 20)", fontFamily: "'Nunito', sans-serif" }}
+            >
+              — 李商隐《锦瑟》
+            </p>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -183,7 +191,7 @@ export default function LockPage({ onUnlock }: LockPageProps) {
           className="text-center text-xs mt-4"
           style={{ color: "oklch(0.55 0.03 20 / 0.7)", fontFamily: "'Nunito', sans-serif" }}
         >
-          仅供我们两人查看 ♡
+          ♡
         </p>
       </div>
     </div>

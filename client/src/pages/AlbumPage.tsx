@@ -1,10 +1,9 @@
 /**
  * AlbumPage: Main memory album gallery.
  * Design: Watercolor Daylight Aesthetic
- * - Warm watercolor header with title
- * - Filter tabs: All / Photos / Videos / Audio
+ * - Warm watercolor header with literary quote
+ * - Filter tabs: 尽 / 影 / 幕 / 律 / 迹
  * - Responsive masonry-style grid
- * - Lightbox for full-screen viewing
  * - Logout button (returns to lock page)
  */
 
@@ -24,10 +23,10 @@ type FilterType = "all" | MediaType;
 type ViewType = FilterType | "chat";
 
 const FILTERS: { key: FilterType; label: string; icon: typeof Layers }[] = [
-  { key: "all", label: "全部", icon: Layers },
-  { key: "photo", label: "照片", icon: Image },
-  { key: "video", label: "视频", icon: Video },
-  { key: "audio", label: "音频", icon: Music },
+  { key: "all", label: "尽", icon: Layers },
+  { key: "photo", label: "影", icon: Image },
+  { key: "video", label: "幕", icon: Video },
+  { key: "audio", label: "律", icon: Music },
 ];
 
 const FILTER_COLORS: Record<ViewType, { active: string; text: string }> = {
@@ -86,7 +85,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
           backgroundImage: `url(${BG_URL})`,
           backgroundSize: "cover",
           backgroundPosition: "center top",
-          minHeight: "220px",
+          minHeight: "200px",
         }}
       >
         <div
@@ -96,69 +95,33 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
 
         <div className="relative z-10 container py-10">
           <div className="flex items-start justify-between">
-            {/* Title */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Heart
-                  className="w-5 h-5"
-                  style={{ color: "oklch(0.62 0.14 10)" }}
-                  fill="currentColor"
-                />
-                <span
-                  className="text-sm font-medium tracking-wide"
-                  style={{
-                    fontFamily: "'Nunito', sans-serif",
-                    color: "oklch(0.55 0.06 15)",
-                  }}
-                >
-                  我们的回忆
-                </span>
-              </div>
-              <h1
-                className="text-5xl font-light leading-tight"
+            {/* Quote */}
+            <div className="max-w-lg">
+              <p
+                className="italic leading-relaxed"
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
-                  color: "oklch(0.28 0.04 15)",
-                  letterSpacing: "-0.01em",
+                  fontSize: "clamp(18px, 2.5vw, 26px)",
+                  color: "oklch(0.32 0.04 15)",
+                  letterSpacing: "0.02em",
                 }}
               >
-                Our Memories
-              </h1>
+                春蚕到死丝方尽，蜡炬成灰泪始干。
+              </p>
               <p
-                className="mt-2 text-sm"
+                className="mt-2 text-xs"
                 style={{
                   fontFamily: "'Nunito', sans-serif",
-                  color: "oklch(0.48 0.04 20)",
+                  color: "oklch(0.55 0.04 20)",
+                  letterSpacing: "0.04em",
                 }}
               >
-                {counts.all} 个珍贵瞬间 · {counts.photo} 张照片 · {counts.video} 个视频 ·{" "}
-                {counts.audio} 段音频
+                — 李商隐《无题》
               </p>
             </div>
 
-            {/* Top-right actions */}
+            {/* Logout only */}
             <div className="flex flex-col gap-2 items-end mt-1">
-              {/* Chat link */}
-              <button
-                onClick={() => window.open(CHAT_URL, "_blank")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
-                style={{
-                  fontFamily: "'Nunito', sans-serif",
-                  background: "rgba(219,234,254,0.85)",
-                  color: "oklch(0.40 0.12 220)",
-                  border: "1px solid rgba(193,219,254,0.9)",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(219,234,254,1)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(219,234,254,0.85)";
-                }}
-              >
-                <MessageSquareText className="w-3.5 h-3.5" />
-                聊天记录
-              </button>
-              {/* Logout */}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
@@ -199,7 +162,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
             {FILTERS.map((f) => {
               const isActive = view === f.key;
               const Icon = f.icon;
-              const count = counts[f.key];
+              const count = counts[f.key as keyof typeof counts];
               return (
                 <button
                   key={f.key}
@@ -238,7 +201,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
               }}
             >
               <MessageSquareText className="w-3.5 h-3.5" />
-              聊天记录
+              迹
             </button>
           </div>
         </div>
@@ -250,7 +213,7 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
           <iframe
             src={CHAT_URL}
             style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-            title="聊天记录"
+            title="迹"
             sandbox="allow-scripts allow-same-origin allow-popups"
           />
         </div>
@@ -275,15 +238,6 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
               }}
             >
               还没有内容，快去添加吧
-            </p>
-            <p
-              className="text-sm text-center max-w-xs"
-              style={{
-                fontFamily: "'Nunito', sans-serif",
-                color: "oklch(0.65 0.02 30)",
-              }}
-            >
-              在 <code className="text-xs bg-gray-100 px-1 rounded">client/src/lib/mediaData.ts</code> 中添加你的照片、视频和音频
             </p>
           </div>
         ) : (
@@ -324,9 +278,6 @@ export default function AlbumPage({ onLogout }: AlbumPageProps) {
           for our memories
         </p>
       </footer>
-
-
-
     </div>
   );
 }
