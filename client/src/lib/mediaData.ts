@@ -19,7 +19,7 @@ export interface MediaItem {
   cover?: string;
 }
 
-const BASE = "https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main";
+const BASE = "https://cdn.jsdelivr.net/gh/xhc0411abcdef-del/xhc-memories@main";
 
 export const mediaItems: MediaItem[] = [
   // ---- 照片 (85张) ----
