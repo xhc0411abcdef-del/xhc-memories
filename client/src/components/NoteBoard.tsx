@@ -1,17 +1,16 @@
 /**
  * NoteBoard — 笺
  * Shared message board backed by a notes.json file in the GitHub repo.
- * Uses GitHub Contents API to read/write notes — works on Cloudflare Pages (static).
+ * - Read:   raw.githubusercontent.com (public repo, no token needed)
+ * - Write:  /api/notes Cloudflare Pages Function (GH_TOKEN stays server-side)
  */
 
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from "react";
 import { Feather, Trash2, Send, RefreshCw } from "lucide-react";
 
-// ── GitHub config ────────────────────────────────────────────────────────────
-const GH_TOKEN = import.meta.env.VITE_GH_TOKEN as string;
-const GH_REPO  = "xhc0411abcdef-del/xhc-memories";
-const GH_FILE  = "notes.json";
-const GH_API   = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+// ── Config ───────────────────────────────────────────────────────────────────
+const RAW_URL = "https://raw.githubusercontent.com/xhc0411abcdef-del/xhc-memories/main/notes.json";
+const API_URL = "/api/notes";
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Sender = "me" | "you";
@@ -20,7 +19,7 @@ interface Note {
   id: string;
   sender: Sender;
   text: string;
-  createdAt: string; // ISO string
+  createdAt: string;
 }
 
 const SENDER_LABELS: Record<Sender, string> = { me: "我", you: "你" };
@@ -38,73 +37,55 @@ const SENDER_COLORS: Record<Sender, { bubble: string; text: string; label: strin
   },
 };
 
-// ── GitHub helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function fetchNotes(): Promise<{ notes: Note[]; sha: string }> {
-  const res = await fetch(GH_API, {
-    headers: {
-      Authorization: `token ${GH_TOKEN}`,
-      Accept: "application/vnd.github.v3+json",
-    },
-    // bypass browser cache so we always get the latest
-    cache: "no-store",
-  });
+async function fetchNotes(): Promise<Note[]> {
+  // Read directly from public raw URL (no token needed, fast CDN)
+  const res = await fetch(RAW_URL + "?t=" + Date.now(), { cache: "no-store" });
   if (!res.ok) throw new Error(`GitHub fetch failed: ${res.status}`);
-  const data = await res.json();
-  // Decode base64 → UTF-8 bytes → string (supports Chinese / multi-byte chars)
-  const raw = atob(data.content.replace(/\n/g, ""));
-  const bytes = Uint8Array.from(raw, (c) => c.charCodeAt(0));
-  const content = new TextDecoder("utf-8").decode(bytes);
-  const notes: Note[] = JSON.parse(content);
-  return { notes, sha: data.sha };
+  return res.json();
 }
 
-async function saveNotes(notes: Note[], sha: string): Promise<string> {
-  // Encode string → UTF-8 bytes → base64 (supports Chinese / multi-byte chars)
-  const jsonStr = JSON.stringify(notes, null, 2);
-  const encoded = new TextEncoder().encode(jsonStr);
-  const content = btoa(Array.from(encoded, (b) => String.fromCharCode(b)).join(""));
-  const res = await fetch(GH_API, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${GH_TOKEN}`,
-      Accept: "application/vnd.github.v3+json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: "feat: update notes",
-      content,
-      sha,
-    }),
+async function postNote(text: string, sender: Sender): Promise<Note[]> {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, sender }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `GitHub save failed: ${res.status}`);
+    throw new Error((err as { error?: string }).error || `发送失败: ${res.status}`);
   }
-  const data = await res.json();
-  return data.content.sha;
+  return res.json();
+}
+
+async function deleteNote(id: string): Promise<Note[]> {
+  const res = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `删除失败: ${res.status}`);
+  }
+  return res.json();
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function NoteBoard() {
-  const [notes, setNotes]       = useState<Note[]>([]);
-  const [sha, setSha]           = useState<string>("");
-  const [sender, setSender]     = useState<Sender>("me");
-  const [input, setInput]       = useState("");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [notes, setNotes]           = useState<Note[]>([]);
+  const [sender, setSender]         = useState<Sender>("me");
+  const [input, setInput]           = useState("");
+  const [hoveredId, setHoveredId]   = useState<string | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const { notes: n, sha: s } = await fetchNotes();
+      const n = await fetchNotes();
       setNotes(n);
-      setSha(s);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -130,18 +111,8 @@ export default function NoteBoard() {
     setSaving(true);
     setError(null);
     try {
-      // Re-fetch latest sha before writing to avoid conflicts
-      const { notes: latest, sha: latestSha } = await fetchNotes();
-      const newNote: Note = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        sender,
-        text,
-        createdAt: new Date().toISOString(),
-      };
-      const updated = [...latest, newNote];
-      const newSha = await saveNotes(updated, latestSha);
+      const updated = await postNote(text, sender);
       setNotes(updated);
-      setSha(newSha);
       setInput("");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "发送失败，请重试");
@@ -155,11 +126,8 @@ export default function NoteBoard() {
     setSaving(true);
     setError(null);
     try {
-      const { notes: latest, sha: latestSha } = await fetchNotes();
-      const updated = latest.filter((n) => n.id !== id);
-      const newSha = await saveNotes(updated, latestSha);
+      const updated = await deleteNote(id);
       setNotes(updated);
-      setSha(newSha);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "删除失败，请重试");
     } finally {
@@ -213,7 +181,7 @@ export default function NoteBoard() {
           {/* Notes */}
           {notes.map((note) => {
             const isMe = note.sender === "me";
-            const colors = SENDER_COLORS[note.sender];
+            const colors = SENDER_COLORS[note.sender] ?? SENDER_COLORS["me"];
             return (
               <div
                 key={note.id}
@@ -230,7 +198,7 @@ export default function NoteBoard() {
                     border: `1.5px solid ${colors.label}33`,
                   }}
                 >
-                  {SENDER_LABELS[note.sender]}
+                  {SENDER_LABELS[note.sender as Sender] ?? note.sender}
                 </div>
 
                 {/* Bubble */}
@@ -298,10 +266,7 @@ export default function NoteBoard() {
           }}
         >
           {error}
-          <button
-            onClick={() => load()}
-            className="ml-2 underline"
-          >
+          <button onClick={() => load()} className="ml-2 underline">
             重试
           </button>
         </div>
@@ -379,4 +344,3 @@ export default function NoteBoard() {
     </div>
   );
 }
-
